@@ -1,0 +1,35 @@
+# ── Dipendenze ────────────────────────────────────────
+node_modules/
+.next/
+out/
+
+# ── Ambiente ──────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Credenziali ───────────────────────────────────────
+credentials.json
+token.json
+
+# ── File intermedi ────────────────────────────────────
+.tmp/
+
+# ── Python ────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# ── OS ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
