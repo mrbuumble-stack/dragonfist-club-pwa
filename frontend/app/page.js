@@ -1,6 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+
+// ── Components ──────────────────────────────────────
+
+/**
+ * Contatore animato che sale da 0 al valore target.
+ */
+function CountUp({ end, duration = 1000 }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      // Ease out cubic
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(easedProgress * end));
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    };
+    window.requestAnimationFrame(step);
+  }, [end, duration]);
+
+  return <span className="animate-number">{count}</span>;
+}
 
 export default function Home() {
   const [view, setView] = useState("login"); // login | dashboard
@@ -10,6 +36,28 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("profilo");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const cardRef = useRef(null);
+
+  // ── Registration of Service Worker ─────────────────
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((reg) => console.log("SW Registered", reg))
+        .catch((err) => console.log("SW Error", err));
+    }
+  }, []);
+
+  // ── Holographic Mouse Follow ───────────────────────
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    cardRef.current.style.setProperty("--mouse-x", `${x}%`);
+    cardRef.current.style.setProperty("--mouse-y", `${y}%`);
+  };
 
   // ── Login ────────────────────────────────────────
   async function handleLogin(e) {
@@ -115,7 +163,7 @@ export default function Home() {
                 disabled={loading}
               >
                 {loading ? (
-                  <span className="spinner" style={{ margin: "0 auto" }} />
+                  <div className="spinner" style={{ margin: "0 auto" }} />
                 ) : (
                   "Accedi 🐉"
                 )}
@@ -147,7 +195,7 @@ export default function Home() {
             src="/icon-512.png"
             alt="DragonFist Club"
             className="logo-img"
-            style={{ width: "64px", height: "64px", borderRadius: "16px" }}
+            style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "contain" }}
           />
           <h1
             className="logo-title"
@@ -173,121 +221,137 @@ export default function Home() {
           </button>
         </div>
 
-        {/* ── Tab: Profilo ─────────────────────────── */}
-        {activeTab === "profilo" && member && (
-          <div className="profile-section fade-in-up fade-in-up-delay-2">
-            <div className="profile-card">
-              {/* Avatar */}
-              <div className="profile-avatar">
-                {member.foto ? (
-                  <img src={member.foto} alt={member.nome} />
-                ) : (
-                  <div className="avatar-placeholder">
-                    {getInitials(member.nome, member.cognome)}
-                  </div>
-                )}
-              </div>
+        {/* ── View Container (Sliding) ───────────────── */}
+        <div className="tabs-container fade-in-up fade-in-up-delay-2">
+          <div
+            className="view-container"
+            style={{ transform: `translateX(${activeTab === "profilo" ? "0" : "-100%"})` }}
+          >
+            {/* View: Profilo */}
+            <div className="view-slide">
+              {member && (
+                <div className="profile-section" style={{ margin: "0 auto" }}>
+                  <div
+                    ref={cardRef}
+                    className="profile-card"
+                    onMouseMove={handleMouseMove}
+                  >
+                    <div className="card-hologram" />
+                    {/* Avatar */}
+                    <div className="profile-avatar">
+                      {member.foto ? (
+                        <img src={member.foto} alt={member.nome} />
+                      ) : (
+                        <div className="avatar-placeholder">
+                          {getInitials(member.nome, member.cognome)}
+                        </div>
+                      )}
+                    </div>
 
-              {/* Name & Email */}
-              <h2 className="profile-name">
-                {member.nome} {member.cognome}
-              </h2>
-              <p className="profile-email">{member.email}</p>
+                    {/* Name & Email */}
+                    <h2 className="profile-name">
+                      {member.nome} {member.cognome}
+                    </h2>
+                    <p className="profile-email">{member.email}</p>
 
-              {/* Points */}
-              <div className="points-display">
-                <p className="points-label">Punti Totali</p>
-                <p className="points-value count-up">
-                  {member.punti}
-                  <span className="points-suffix"> pts</span>
-                </p>
-              </div>
-
-              {/* Points History */}
-              {member.storico && member.storico.length > 1 && (
-                <div className="history-section">
-                  <p className="history-title">📊 Storico Punti</p>
-                  <div className="history-bars">
-                    {member.storico.map((pts, i) => (
-                      <div
-                        key={i}
-                        className="history-bar"
-                        style={{
-                          height: `${Math.max((pts / maxStorico) * 100, 10)}%`,
-                        }}
-                      >
-                        <span className="bar-tooltip">{pts} pts</span>
+                    {/* Points */}
+                    <div className="points-display">
+                      <p className="points-label">Punti Totali</p>
+                      <div className="points-value">
+                        <CountUp end={member.punti} />
+                        <span className="points-suffix"> pts</span>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Points History */}
+                    {member.storico && member.storico.length > 1 && (
+                      <div className="history-section">
+                        <p className="history-title">📊 Storico Punti</p>
+                        <div className="history-bars">
+                          {member.storico.map((pts, i) => (
+                            <div
+                              key={i}
+                              className="history-bar"
+                              style={{
+                                height: `${Math.max((pts / maxStorico) * 100, 10)}%`,
+                              }}
+                            >
+                              <span className="bar-tooltip">{pts} pts</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ textAlign: "center" }}>
+                    <button className="btn-logout" onClick={handleLogout}>
+                      Esci
+                    </button>
                   </div>
                 </div>
               )}
             </div>
 
-            <div style={{ textAlign: "center" }}>
-              <button className="btn-logout" onClick={handleLogout}>
-                Esci
-              </button>
+            {/* View: Classifica */}
+            <div className="view-slide">
+              <div className="leaderboard-section" style={{ margin: "0 auto" }}>
+                <div className="leaderboard-card">
+                  <h3 className="leaderboard-title">🏆 Classifica Top 10</h3>
+
+                  {leaderboard.length === 0 ? (
+                    <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                      Caricamento...
+                    </p>
+                  ) : (
+                    <ul className="leaderboard-list">
+                      {leaderboard.map((entry, index) => {
+                        const rank = getRankDisplay(index);
+                        const isCurrentUser = entry.email === member?.email;
+
+                        return (
+                          <li
+                            key={entry.email}
+                            className={`leaderboard-item ${isCurrentUser ? "current-user" : ""
+                              }`}
+                          >
+                            <span className={`rank ${rank.className}`}>
+                              {rank.symbol}
+                            </span>
+
+                            <div className="leaderboard-avatar">
+                              {entry.foto ? (
+                                <img src={entry.foto} alt={entry.nome} />
+                              ) : (
+                                getInitials(entry.nome, entry.cognome)
+                              )}
+                            </div>
+
+                            <span className="leaderboard-name">
+                              {entry.nome} {entry.cognome}
+                              {isCurrentUser && " ⭐"}
+                            </span>
+
+                            <span className="leaderboard-points">
+                              {entry.punti}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <button className="btn-logout" onClick={handleLogout}>
+                    Esci
+                  </button>
+                </div>
+              </div>
             </div>
+
           </div>
-        )}
-
-        {/* ── Tab: Classifica ──────────────────────── */}
-        {activeTab === "classifica" && (
-          <div className="leaderboard-section fade-in-up fade-in-up-delay-2">
-            <div className="leaderboard-card">
-              <h3 className="leaderboard-title">🏆 Classifica</h3>
-
-              {leaderboard.length === 0 ? (
-                <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-                  Nessun dato disponibile
-                </p>
-              ) : (
-                <ul className="leaderboard-list">
-                  {leaderboard.map((entry, index) => {
-                    const rank = getRankDisplay(index);
-                    const isCurrentUser = entry.email === member?.email;
-
-                    return (
-                      <li
-                        key={entry.email}
-                        className={`leaderboard-item ${isCurrentUser ? "current-user" : ""
-                          }`}
-                      >
-                        <span className={`rank ${rank.className}`}>
-                          {rank.symbol}
-                        </span>
-
-                        <div className="leaderboard-avatar">
-                          {entry.foto ? (
-                            <img src={entry.foto} alt={entry.nome} />
-                          ) : (
-                            getInitials(entry.nome, entry.cognome)
-                          )}
-                        </div>
-
-                        <span className="leaderboard-name">
-                          {entry.nome} {entry.cognome}
-                          {isCurrentUser && " ⭐"}
-                        </span>
-
-                        <span className="leaderboard-points">
-                          {entry.punti}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
-            <div style={{ textAlign: "center" }}>
-              <button className="btn-logout" onClick={handleLogout}>
-                Esci
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </>
   );

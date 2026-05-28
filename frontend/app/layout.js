@@ -5,24 +5,25 @@ export const metadata = {
   description:
     "Visualizza i tuoi punti associativi e la classifica DragonFist Club",
   manifest: "/manifest.json",
-  themeColor: "#d4a843",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "DragonFist Club",
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
+};
+
+export const viewport = {
+  themeColor: "#d4a843",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="it">
       <head>
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body>{children}</body>

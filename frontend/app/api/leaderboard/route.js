@@ -11,9 +11,10 @@ export async function GET(request) {
 
         return NextResponse.json({ leaderboard });
     } catch (err) {
+        console.error("API Error [leaderboard]:", err);
         return NextResponse.json(
-            { error: "Errore nel recupero dei dati: " + err.message },
-            { status: 502 }
+            { error: "Errore interno: " + err.message },
+            { status: 500 }
         );
     }
 }

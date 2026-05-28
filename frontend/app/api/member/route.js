@@ -25,9 +25,10 @@ export async function GET(request) {
 
         return NextResponse.json(member);
     } catch (err) {
+        console.error("API Error [member]:", err);
         return NextResponse.json(
-            { error: "Errore nel recupero dei dati: " + err.message },
-            { status: 502 }
+            { error: "Errore interno: " + err.message },
+            { status: 500 }
         );
     }
 }

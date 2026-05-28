@@ -17,6 +17,7 @@ Ogni membro inserisce la propria email e visualizza:
 ## Stack Tecnologico
 - **Frontend + API**: Next.js (App Router) + Tailwind-free custom CSS
 - **Data fetching**: CSV export dal Google Sheet → parsed con `papaparse`
+- **PWA Features**: Service Worker per offline caching, manifest.json con icone responsive (192, 384, 512, apple-icon), metadata Next.js
 - **Hosting**: può essere deployato su Vercel, Netlify, o simili
 
 ## Come Funziona
@@ -44,11 +45,12 @@ Oppure collegare il repo a Vercel per deploy automatico.
 
 ## File Principali
 - `frontend/lib/sheets.js` — Logica di fetch + parsing + cache
-- `frontend/app/api/member/route.js` — API lookup membro
-- `frontend/app/api/leaderboard/route.js` — API classifica
-- `frontend/app/page.js` — UI principale (login + dashboard)
-- `frontend/app/globals.css` — Design system DragonFist
-- `frontend/public/manifest.json` — Configurazione PWA
+- `frontend/app/api/member/route.js` — API lookup membro (usa path alias `@/lib/sheets`)
+- `frontend/app/api/leaderboard/route.js` — API classifica (usa path alias `@/lib/sheets`)
+- `frontend/app/page.js` — UI principale (login + dashboard + contatore animato CountUp)
+- `frontend/app/globals.css` — Design system DragonFist (include effetti olografici/shine)
+- `frontend/public/manifest.json` — Configurazione PWA completa di icone responsive
+- `frontend/public/sw.js` — Service worker per offline caching
 
 ## Casi Limite
 - **Email non trovata**: restituisce errore 404 con messaggio utente
