@@ -1,0 +1,14 @@
+[
+  { "id": "catan", "nome": "Catan", "puntiVittoria": 10 },
+  { "id": "carcassonne", "nome": "Carcassonne", "puntiVittoria": 8 },
+  { "id": "dixit", "nome": "Dixit", "puntiVittoria": 6 },
+  { "id": "ticket_to_ride", "nome": "Ticket to Ride", "puntiVittoria": 10 },
+  { "id": "7_wonders", "nome": "7 Wonders", "puntiVittoria": 8 },
+  { "id": "splendor", "nome": "Splendor", "puntiVittoria": 7 },
+  { "id": "azul", "nome": "Azul", "puntiVittoria": 7 },
+  { "id": "scythe", "nome": "Scythe", "puntiVittoria": 15 },
+  { "id": "brass_birmingham", "nome": "Brass: Birmingham", "puntiVittoria": 18 },
+  { "id": "bang", "nome": "Bang!", "puntiVittoria": 5 },
+  { "id": "risiko", "nome": "Risiko!", "puntiVittoria": 12 },
+  { "id": "monopoly", "nome": "Monopoly", "puntiVittoria": 8 }
+]

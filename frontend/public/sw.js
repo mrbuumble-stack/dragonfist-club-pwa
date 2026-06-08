@@ -1,9 +1,10 @@
-const CACHE_NAME = "dragonfist-v3";
+const CACHE_NAME = "dragonfist-v4";
 const ASSETS_TO_CACHE = [
     "/",
     "/manifest.json",
     "/icon-192.png",
     "/icon-512.png",
+    "/giochi.json",
 ];
 
 // Install Event
