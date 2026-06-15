@@ -78,6 +78,7 @@ export default function Home() {
   // Phase 3: Chiusura Partita states
   const [showEndGameModal, setShowEndGameModal] = useState(false);
   const [selectedWinners, setSelectedWinners] = useState([]); // List of player keys (email or guest name)
+  const [showGamesModal, setShowGamesModal] = useState(false);
 
   // Admin Panel states
   const [adminSearchQuery, setAdminSearchQuery] = useState("");
@@ -1244,6 +1245,49 @@ export default function Home() {
             </div>
           )}
 
+          {showGamesModal && (
+            <div className="modal-overlay">
+              <div className="modal-card" style={{ maxWidth: "420px" }}>
+                <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                  <span>🎲</span> Ludoteca Club
+                </h3>
+                <p className="modal-desc" style={{ marginBottom: "1rem" }}>Tutti i giochi registrati in catalogo:</p>
+                
+                <div className="games-list-simple" style={{ maxHeight: "350px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem", paddingRight: "0.25rem", textAlign: "left" }}>
+                  {games.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((game) => (
+                    <div 
+                      key={game.id} 
+                      style={{ 
+                        padding: "0.85rem 1rem", 
+                        background: "rgba(255, 255, 255, 0.03)", 
+                        borderRadius: "14px", 
+                        border: "1px solid var(--border-subtle)",
+                        fontWeight: "600",
+                        fontSize: "0.95rem",
+                        color: "var(--text-primary)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.6rem"
+                      }}
+                    >
+                      <span style={{ color: "var(--gold)" }}>•</span>
+                      {game.nome}
+                    </div>
+                  ))}
+                  {games.length === 0 && (
+                    <p style={{ textAlign: "center", color: "var(--text-secondary)", padding: "1.5rem" }}>Caricamento giochi in corso...</p>
+                  )}
+                </div>
+
+                <div className="modal-actions" style={{ marginTop: "1.5rem" }}>
+                  <button className="btn-modal-secondary" style={{ width: "100%" }} onClick={() => setShowGamesModal(false)}>
+                    Chiudi
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </>
     );
@@ -1288,14 +1332,35 @@ export default function Home() {
           </div>
         )}
 
-        {/* Pulsante Inizia Partita / Setup */}
-        <div className="fade-in-up fade-in-up-delay-1" style={{ width: "100%", maxWidth: "480px", marginBottom: "1.5rem" }}>
+        {/* Pulsanti Inizia Partita e Catalogo Giochi */}
+        <div className="fade-in-up fade-in-up-delay-1" style={{ width: "100%", maxWidth: "480px", marginBottom: "1.5rem", display: "flex", gap: "0.75rem" }}>
           <button 
             className="btn-primary" 
-            style={{ background: "linear-gradient(135deg, var(--gold), var(--gold-dark))", color: "var(--bg-primary)", fontSize: "1.1rem", padding: "1.1rem" }}
+            style={{ flex: 3, background: "linear-gradient(135deg, var(--gold), var(--gold-dark))", color: "var(--bg-primary)", fontSize: "1.05rem", padding: "1rem" }}
             onClick={handleStartSetup}
           >
             Inizia Partita 🐉⚔️
+          </button>
+          <button 
+            className="btn-secondary" 
+            style={{ 
+              flex: 1.1, 
+              display: "flex", 
+              flexDirection: "column", 
+              justifyContent: "center", 
+              alignItems: "center", 
+              fontSize: "0.82rem", 
+              padding: "0.6rem 0.5rem", 
+              border: "1px solid var(--border-gold)", 
+              borderRadius: "14px", 
+              background: "rgba(255, 204, 51, 0.05)", 
+              color: "var(--gold)",
+              outline: "none"
+            }}
+            onClick={() => setShowGamesModal(true)}
+          >
+            <span style={{ fontSize: "1.3rem", lineHeight: "1" }}>🎲</span>
+            <span style={{ fontWeight: "700", marginTop: "4px" }}>Giochi</span>
           </button>
         </div>
 
