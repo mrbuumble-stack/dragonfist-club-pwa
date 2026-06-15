@@ -566,11 +566,6 @@ export default function Home() {
   }
 
   async function handleConfirmEndGame() {
-    if (selectedWinners.length === 0) {
-      setError("Seleziona almeno un vincitore.");
-      return;
-    }
-
     setLoading(true);
     setError("");
     setSuccessBanner("");
@@ -635,7 +630,9 @@ export default function Home() {
 
     // Costruisci il banner di successo
     const socioWinners = sessionPlayers.filter(p => p.type === "socio" && selectedWinners.includes(p.email));
-    if (socioWinners.length > 0) {
+    if (selectedWinners.length === 0) {
+      setSuccessBanner("Partita terminata senza alcun vincitore. La classifica resta invariata.");
+    } else if (socioWinners.length > 0) {
       setSuccessBanner(`Partita terminata! Assegnati +${winPoints} punti ai soci vincitori: ${socioWinners.map(w => w.nome).join(", ")}`);
     } else {
       setSuccessBanner("Partita terminata. Nessun socio registrato era tra i vincitori, la classifica resta invariata.");
@@ -1229,9 +1226,15 @@ export default function Home() {
 
                 {error && <p className="error-text" style={{ marginBottom: "1rem" }}>{error}</p>}
 
-                <div className="modal-actions">
+                <div className="modal-actions" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   <button className="btn-modal-primary" onClick={handleConfirmEndGame} disabled={loading}>
-                    {loading ? <div className="spinner" style={{ margin: "0 auto" }} /> : "Assegna Vittoria 👑"}
+                    {loading ? (
+                      <div className="spinner" style={{ margin: "0 auto" }} />
+                    ) : selectedWinners.length > 0 ? (
+                      "Assegna Vittoria 👑"
+                    ) : (
+                      "Termina senza Vincitori ❌"
+                    )}
                   </button>
                   <button className="btn-modal-secondary" onClick={() => setShowEndGameModal(false)} disabled={loading}>
                     Annulla
