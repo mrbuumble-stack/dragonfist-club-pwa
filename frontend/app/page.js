@@ -1342,7 +1342,6 @@ export default function Home() {
             Inizia Partita 🐉⚔️
           </button>
           <button 
-            className="btn-secondary" 
             style={{ 
               flex: 1.1, 
               display: "flex", 
@@ -1355,7 +1354,8 @@ export default function Home() {
               borderRadius: "14px", 
               background: "rgba(255, 204, 51, 0.05)", 
               color: "var(--gold)",
-              outline: "none"
+              outline: "none",
+              cursor: "pointer"
             }}
             onClick={() => setShowGamesModal(true)}
           >
