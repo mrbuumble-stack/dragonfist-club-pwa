@@ -58,7 +58,30 @@ export async function fetchMembers() {
         return applyLocalTransactions(cachedData);
     }
 
-    // Prova ad usare la Google Sheets API v4 se la chiave è presente
+    const scriptUrl = process.env.GOOGLE_SCRIPT_URL;
+
+    // 1. Prova a caricare tramite Google Apps Script Web App (consigliato - non richiede API Key Google Cloud)
+    if (scriptUrl && scriptUrl.trim().length > 0) {
+        try {
+            console.log("Sheet Lib: Tentativo caricamento membri tramite Google Apps Script...");
+            const res = await fetch(`${scriptUrl}?action=getMembers`, { cache: "no-store" });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.members) {
+                    console.log(`Sheet Lib: Caricati ${data.members.length} membri via Apps Script.`);
+                    cachedData = data.members;
+                    cacheTimestamp = now;
+                    return applyLocalTransactions(data.members);
+                }
+            } else {
+                console.warn(`Sheet Lib: Apps Script ha risposto con codice ${res.status}. Provo alternative...`);
+            }
+        } catch (scriptErr) {
+            console.warn("Sheet Lib: Errore caricamento via Apps Script:", scriptErr.message);
+        }
+    }
+
+    // 2. Prova ad usare la Google Sheets API v4 se la chiave è presente
     if (API_KEY && API_KEY.trim().length > 0) {
         try {
             console.log("Sheet Lib: Tentativo caricamento tramite Google Sheets API...");
@@ -246,7 +269,28 @@ export function buildLeaderboard(members) {
  * In caso di errore o assenza, effettua il fallback sul file locale giochi.json.
  */
 export async function fetchGames() {
-    // 1. Prova via Google Sheets API v4 se la chiave è presente
+    const scriptUrl = process.env.GOOGLE_SCRIPT_URL;
+
+    // 1. Prova a caricare tramite Google Apps Script Web App (consigliato)
+    if (scriptUrl && scriptUrl.trim().length > 0) {
+        try {
+            console.log("Sheet Lib: Tentativo caricamento giochi tramite Google Apps Script...");
+            const res = await fetch(`${scriptUrl}?action=getGames`, { cache: "no-store" });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.games) {
+                    console.log(`Sheet Lib: Caricati ${data.games.length} giochi via Apps Script.`);
+                    return data.games;
+                }
+            } else {
+                console.warn(`Sheet Lib: Apps Script giochi ha risposto con codice ${res.status}. Provo alternative...`);
+            }
+        } catch (scriptErr) {
+            console.warn("Sheet Lib: Errore caricamento giochi via Apps Script:", scriptErr.message);
+        }
+    }
+
+    // 2. Prova via Google Sheets API v4 se la chiave è presente
     if (API_KEY && API_KEY.trim().length > 0) {
         try {
             console.log("Sheet Lib: Tentativo caricamento giochi tramite Google Sheets API...");
