@@ -63,6 +63,7 @@ export default function Home() {
   const [timerSecondsLeft, setTimerSecondsLeft] = useState(60);
   const [timerActive, setTimerActive] = useState(false);
   const [timerPaused, setTimerPaused] = useState(false);
+  const [customTimerInput, setCustomTimerInput] = useState("");
 
   // Tool 4: RNG state
   const [rngMin, setRngMin] = useState(1);
@@ -93,6 +94,36 @@ export default function Home() {
         .catch((err) => console.log("SW Error", err));
     }
     
+    // Auto login se l'email è salvata nel localStorage
+    const savedEmail = localStorage.getItem("dragonfist_logged_email");
+    if (savedEmail) {
+      async function autoLogin() {
+        setLoading(true);
+        try {
+          const res = await fetch(`/api/member?email=${encodeURIComponent(savedEmail.trim())}`);
+          if (res.ok) {
+            const memberData = await res.json();
+            setMember(memberData);
+            
+            // Fetch leaderboard
+            const lbRes = await fetch("/api/leaderboard");
+            if (lbRes.ok) {
+              const lbData = await lbRes.json();
+              setLeaderboard(lbData.leaderboard || []);
+            }
+            setView("dashboard");
+          } else {
+            localStorage.removeItem("dragonfist_logged_email");
+          }
+        } catch (err) {
+          console.error("Auto login error:", err);
+        } finally {
+          setLoading(false);
+        }
+      }
+      autoLogin();
+    }
+
     // Carica il catalogo giochi all'avvio
     async function loadGames() {
       try {
@@ -193,6 +224,9 @@ export default function Home() {
 
       const memberData = await res.json();
       setMember(memberData);
+      
+      // Salva l'email nel localStorage per rimanere loggato
+      localStorage.setItem("dragonfist_logged_email", memberData.email);
 
       // Fetch leaderboard
       const lbRes = await fetch("/api/leaderboard");
@@ -210,6 +244,8 @@ export default function Home() {
   }
 
   function handleLogout() {
+    // Rimuove l'email dal localStorage per uscire esplicitamente
+    localStorage.removeItem("dragonfist_logged_email");
     setView("login");
     setMember(null);
     setLeaderboard([]);
@@ -993,6 +1029,32 @@ export default function Home() {
                         {secs}s
                       </button>
                     ))}
+                  </div>
+
+                  {/* Timer personalizzato */}
+                  <div className="timer-custom-container" style={{ display: "flex", gap: "0.5rem", justifyContent: "center", alignItems: "center", margin: "1rem 0" }}>
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Personalizzato:</span>
+                    <input
+                      type="number"
+                      placeholder="Secondi"
+                      min="1"
+                      className="rng-input"
+                      style={{ width: "85px", textAlign: "center", padding: "0.3rem" }}
+                      value={customTimerInput}
+                      onChange={(e) => setCustomTimerInput(e.target.value)}
+                    />
+                    <button
+                      className="btn-timer-preset"
+                      style={{ padding: "0.3rem 0.65rem", minWidth: "auto", background: "rgba(255, 204, 51, 0.15)", border: "1px solid var(--border-gold)" }}
+                      onClick={() => {
+                        const val = parseInt(customTimerInput, 10);
+                        if (!isNaN(val) && val > 0) {
+                          applyTimerPreset(val);
+                        }
+                      }}
+                    >
+                      Imposta
+                    </button>
                   </div>
 
                   {/* Controlli Start/Pausa/Reset */}
