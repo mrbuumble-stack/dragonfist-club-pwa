@@ -662,9 +662,10 @@ body {
 
 .admin-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
   background: rgba(255, 255, 255, 0.02);
   border-radius: 14px;
   border: 1px solid transparent;
@@ -694,6 +695,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .admin-input {
