@@ -278,7 +278,7 @@ export default function Home() {
       const res = await fetch("/api/admin/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: targetEmail, points: deltaVal })
+        body: JSON.stringify({ email: targetEmail, points: deltaVal, reason: "Admin" })
       });
 
       if (res.ok) {
@@ -588,7 +588,11 @@ export default function Home() {
           const res = await fetch("/api/admin/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: playerObj.email, points: winPoints })
+            body: JSON.stringify({ 
+              email: playerObj.email, 
+              points: winPoints, 
+              reason: selectedGame ? selectedGame.nome : "Gioco" 
+            })
           });
 
           if (res.ok) {
