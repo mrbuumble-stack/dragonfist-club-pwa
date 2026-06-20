@@ -71,6 +71,7 @@ export async function fetchMembers() {
                     console.log(`Sheet Lib: Caricati ${data.members.length} membri via Apps Script.`);
                     cachedData = data.members;
                     cacheTimestamp = now;
+                    localTransactions = [];
                     return applyLocalTransactions(data.members);
                 }
             } else {
@@ -96,6 +97,7 @@ export async function fetchMembers() {
                     console.log(`Sheet Lib: Caricati ${parsedMembers.length} membri via Google Sheets API.`);
                     cachedData = parsedMembers;
                     cacheTimestamp = now;
+                    localTransactions = [];
                     return applyLocalTransactions(parsedMembers);
                 }
             } else {
@@ -145,6 +147,7 @@ export async function fetchMembers() {
         console.log(`Sheet Lib: Caricati ${members.length} membri via CSV.`);
         cachedData = members;
         cacheTimestamp = now;
+        localTransactions = [];
 
         return applyLocalTransactions(members);
     } catch (err) {
