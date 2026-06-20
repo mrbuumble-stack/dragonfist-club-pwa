@@ -42,6 +42,7 @@ export default function Home() {
   const [selectedSoci, setSelectedSoci] = useState([]); // Array of emails
   const [guestName, setGuestName] = useState("");
   const [guestsList, setGuestsList] = useState([]); // Array of strings (names)
+  const [setupSocioSearch, setSetupSocioSearch] = useState("");
   
   // Game session active states (Phase 2)
   const [sessionPlayers, setSessionPlayers] = useState([]); // Combined list of { nome, email, type: 'socio'|'ospite' }
@@ -323,6 +324,7 @@ export default function Home() {
   function handleStartSetup() {
     setSelectedGame(null);
     setGameSearch("");
+    setSetupSocioSearch("");
     setSelectedSoci([member?.email].filter(Boolean)); // Inserisce di default il socio loggato
     setGuestsList([]);
     setGuestName("");
@@ -756,20 +758,33 @@ export default function Home() {
             {/* Selezione Associati */}
             <div className="setup-group">
               <label className="setup-label">2. Seleziona Associati Presenti</label>
+              <input
+                type="text"
+                placeholder="Filtra soci per nome o email..."
+                className="admin-search"
+                style={{ marginBottom: "0.75rem" }}
+                value={setupSocioSearch}
+                onChange={(e) => setSetupSocioSearch(e.target.value)}
+              />
               <div className="players-selection">
-                {leaderboard.map((socio) => {
-                  const isChecked = selectedSoci.includes(socio.email);
-                  return (
-                    <label key={socio.email} className="player-checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleSocioSelect(socio.email)}
-                      />
-                      <span>{socio.nome} {socio.cognome}</span>
-                    </label>
-                  );
-                })}
+                {leaderboard
+                  .filter((socio) =>
+                    `${socio.nome} ${socio.cognome}`.toLowerCase().includes(setupSocioSearch.toLowerCase()) ||
+                    socio.email.toLowerCase().includes(setupSocioSearch.toLowerCase())
+                  )
+                  .map((socio) => {
+                    const isChecked = selectedSoci.includes(socio.email);
+                    return (
+                      <label key={socio.email} className="player-checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSocioSelect(socio.email)}
+                        />
+                        <span>{socio.nome} {socio.cognome}</span>
+                      </label>
+                    );
+                  })}
               </div>
             </div>
 

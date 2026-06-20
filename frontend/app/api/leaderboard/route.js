@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchMembers, buildLeaderboard } from "@/lib/sheets";
 
 export async function GET(request) {
-    const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get("limit") || "10", 10), 50);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "1000", 10), 1000);
 
     try {
         const members = await fetchMembers();
