@@ -20,7 +20,7 @@ const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export
 // ── In-memory cache (5 min TTL) ─────────────────────
 let cachedData = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 300_000; // 5 minuti in ms
+const CACHE_TTL = 2000; // 2 secondi in ms (previene incoerenze su Vercel Serverless)
 
 // Registro locale delle transazioni per permettere aggiornamenti di test locali in memoria
 let localTransactions = [];
