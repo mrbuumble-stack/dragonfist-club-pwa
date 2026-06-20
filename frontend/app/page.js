@@ -326,6 +326,7 @@ export default function Home() {
     setSelectedSoci([member?.email].filter(Boolean)); // Inserisce di default il socio loggato
     setGuestsList([]);
     setGuestName("");
+    setShowGamesModal(false);
     setView("game_setup");
   }
 
@@ -414,6 +415,7 @@ export default function Home() {
     setActiveGameTool("sorteggio");
     setError("");
     setSuccessBanner("");
+    setShowGamesModal(false);
     
     setView("game_mode");
   }
@@ -1245,49 +1247,6 @@ export default function Home() {
             </div>
           )}
 
-          {showGamesModal && (
-            <div className="modal-overlay">
-              <div className="modal-card" style={{ maxWidth: "420px" }}>
-                <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                  <span>🎲</span> Ludoteca Club
-                </h3>
-                <p className="modal-desc" style={{ marginBottom: "1rem" }}>Tutti i giochi registrati in catalogo:</p>
-                
-                <div className="games-list-simple" style={{ maxHeight: "350px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem", paddingRight: "0.25rem", textAlign: "left" }}>
-                  {games.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((game) => (
-                    <div 
-                      key={game.id} 
-                      style={{ 
-                        padding: "0.85rem 1rem", 
-                        background: "rgba(255, 255, 255, 0.03)", 
-                        borderRadius: "14px", 
-                        border: "1px solid var(--border-subtle)",
-                        fontWeight: "600",
-                        fontSize: "0.95rem",
-                        color: "var(--text-primary)",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.6rem"
-                      }}
-                    >
-                      <span style={{ color: "var(--gold)" }}>•</span>
-                      {game.nome}
-                    </div>
-                  ))}
-                  {games.length === 0 && (
-                    <p style={{ textAlign: "center", color: "var(--text-secondary)", padding: "1.5rem" }}>Caricamento giochi in corso...</p>
-                  )}
-                </div>
-
-                <div className="modal-actions" style={{ marginTop: "1.5rem" }}>
-                  <button className="btn-modal-secondary" style={{ width: "100%" }} onClick={() => setShowGamesModal(false)}>
-                    Chiudi
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
         </div>
       </>
     );
@@ -1581,6 +1540,47 @@ export default function Home() {
                 <button className="btn-logout" onClick={handleLogout}>
                   Esci
                 </button>
+              </div>
+            </div>
+          )}          {showGamesModal && (
+            <div className="modal-overlay">
+              <div className="modal-card" style={{ maxWidth: "420px" }}>
+                <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                  <span>🎲</span> Ludoteca Club
+                </h3>
+                <p className="modal-desc" style={{ marginBottom: "1rem" }}>Tutti i giochi registrati in catalogo:</p>
+                
+                <div className="games-list-simple" style={{ maxHeight: "350px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem", paddingRight: "0.25rem", textAlign: "left" }}>
+                  {games.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((game) => (
+                    <div 
+                      key={game.id} 
+                      style={{ 
+                        padding: "0.85rem 1rem", 
+                        background: "rgba(255, 255, 255, 0.03)", 
+                        borderRadius: "14px", 
+                        border: "1px solid var(--border-subtle)",
+                        fontWeight: "600",
+                        fontSize: "0.95rem",
+                        color: "var(--text-primary)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.6rem"
+                      }}
+                    >
+                      <span style={{ color: "var(--gold)" }}>•</span>
+                      {game.nome}
+                    </div>
+                  ))}
+                  {games.length === 0 && (
+                    <p style={{ textAlign: "center", color: "var(--text-secondary)", padding: "1.5rem" }}>Caricamento giochi in corso...</p>
+                  )}
+                </div>
+
+                <div className="modal-actions" style={{ marginTop: "1.5rem" }}>
+                  <button className="btn-modal-secondary" style={{ width: "100%" }} onClick={() => setShowGamesModal(false)}>
+                    Chiudi
+                  </button>
+                </div>
               </div>
             </div>
           )}
