@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchMembers, buildLeaderboard } from "@/lib/sheets";
 
 export async function GET(request) {
-    const limit = Math.min(parseInt(searchParams.get("limit") || "1000", 10), 1000);
+    const limit = 1000; // Mostra tutti i soci
 
     try {
         const members = await fetchMembers();
