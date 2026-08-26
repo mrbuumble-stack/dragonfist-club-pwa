@@ -3,30 +3,41 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { email, fotoUrl } = body;
+        const { email, fotoUrl, base64Data, mimeType } = body;
 
-        if (!email || !fotoUrl) {
+        if (!email || (!fotoUrl && !base64Data)) {
             return NextResponse.json(
-                { error: "Parametri 'email' e 'fotoUrl' obbligatori" },
+                { error: "È necessario fornire un'immagine (file) o un URL valido." },
                 { status: 400 }
             );
         }
 
         const emailLower = email.trim().toLowerCase();
-        const urlTrimmed = fotoUrl.trim();
+        let payloadToSend = {
+            email: emailLower,
+        };
 
-        // Validazione base URL
-        try {
-            new URL(urlTrimmed);
-        } catch {
-            return NextResponse.json(
-                { error: "L'URL fornito non e' valido." },
-                { status: 400 }
-            );
+        if (base64Data) {
+            payloadToSend.action = "uploadFoto";
+            payloadToSend.base64Data = base64Data;
+            payloadToSend.mimeType = mimeType || "image/jpeg";
+        } else {
+            const urlTrimmed = fotoUrl.trim();
+            try {
+                new URL(urlTrimmed);
+            } catch {
+                return NextResponse.json(
+                    { error: "L'URL fornito non è valido." },
+                    { status: 400 }
+                );
+            }
+            payloadToSend.action = "updateFoto";
+            payloadToSend.fotoUrl = urlTrimmed;
         }
 
         let sheetUpdated = false;
         let warning = null;
+        let finalFotoUrl = fotoUrl ? fotoUrl.trim() : null;
 
         // Invia al Google Apps Script
         const scriptUrl = process.env.GOOGLE_SCRIPT_URL;
@@ -35,16 +46,16 @@ export async function POST(request) {
                 const response = await fetch(scriptUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        action: "updateFoto",
-                        email: emailLower,
-                        fotoUrl: urlTrimmed,
-                    }),
+                    body: JSON.stringify(payloadToSend),
                     cache: "no-store",
                 });
 
                 if (response.ok) {
+                    const resultData = await response.json().catch(() => ({}));
                     sheetUpdated = true;
+                    if (resultData.fotoUrl) {
+                        finalFotoUrl = resultData.fotoUrl;
+                    }
                 } else {
                     const text = await response.text();
                     warning = `Apps Script ha risposto con errore (${response.status}): ${text}`;
@@ -62,7 +73,7 @@ export async function POST(request) {
             sheetUpdated,
             warning,
             email: emailLower,
-            fotoUrl: urlTrimmed,
+            fotoUrl: finalFotoUrl,
         });
     } catch (err) {
         console.error("API Error [member/update-foto]:", err);

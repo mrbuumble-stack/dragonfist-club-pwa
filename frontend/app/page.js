@@ -87,7 +87,10 @@ export default function Home() {
 
   // Foto Profilo states
   const [showFotoModal, setShowFotoModal] = useState(false);
+  const [fotoTab, setFotoTab] = useState("file"); // "file" | "url"
   const [fotoUrlInput, setFotoUrlInput] = useState("");
+  const [fotoBase64, setFotoBase64] = useState("");
+  const [fotoPreview, setFotoPreview] = useState("");
   const [fotoLoading, setFotoLoading] = useState(false);
 
   const cardRef = useRef(null);
@@ -326,21 +329,100 @@ export default function Home() {
   }
 
   // ── Actions: Update Profile Photo ────────────────────
+  function processAndCompressImage(file) {
+    return new Promise((resolve, reject) => {
+      if (!file || !file.type.startsWith("image/")) {
+        reject(new Error("Seleziona un file immagine valido (JPG, PNG, WEBP)."));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Comprimi in JPEG qualità 82%
+          const base64 = canvas.toDataURL("image/jpeg", 0.82);
+          resolve(base64);
+        };
+        img.onerror = () => reject(new Error("Impossibile elaborare l'immagine."));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error("Errore durante la lettura del file."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFileSelect(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setError("");
+    setFotoLoading(true);
+    try {
+      const compressed = await processAndCompressImage(file);
+      setFotoBase64(compressed);
+      setFotoPreview(compressed);
+    } catch (err) {
+      setError(err.message || "Errore nella compressione dell'immagine.");
+    } finally {
+      setFotoLoading(false);
+    }
+  }
+
   async function handleUpdateFoto() {
-    if (!fotoUrlInput.trim() || !member) return;
+    if (!member) return;
+    if (fotoTab === "url" && !fotoUrlInput.trim()) {
+      setError("Inserisci un link URL valido.");
+      return;
+    }
+    if (fotoTab === "file" && !fotoBase64) {
+      setError("Seleziona prima una foto dal tuo dispositivo.");
+      return;
+    }
+
     setFotoLoading(true);
     setError("");
     setSuccessBanner("");
+
+    const payload = { email: member.email };
+    if (fotoTab === "file") {
+      payload.base64Data = fotoBase64;
+      payload.mimeType = "image/jpeg";
+    } else {
+      payload.fotoUrl = fotoUrlInput.trim();
+    }
 
     try {
       const res = await fetch("/api/member/update-foto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: member.email, fotoUrl: fotoUrlInput.trim() })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        setMember((prev) => ({ ...prev, foto: fotoUrlInput.trim() }));
+        const resData = await res.json();
+        const newFoto = resData.fotoUrl || (fotoTab === "url" ? fotoUrlInput.trim() : fotoBase64);
+        setMember((prev) => ({ ...prev, foto: newFoto }));
         
         const lbRes = await fetch("/api/leaderboard");
         if (lbRes.ok) {
@@ -351,6 +433,8 @@ export default function Home() {
         setSuccessBanner("Foto profilo aggiornata con successo! 📸");
         setShowFotoModal(false);
         setFotoUrlInput("");
+        setFotoBase64("");
+        setFotoPreview("");
       } else {
         const data = await res.json();
         setError(data.error || "Impossibile aggiornare la foto profilo.");
@@ -1682,45 +1766,138 @@ export default function Home() {
           {/* MODAL CAMBIA FOTO PROFILO */}
           {showFotoModal && (
             <div className="modal-overlay">
-              <div className="modal-card" style={{ maxWidth: "420px" }}>
+              <div className="modal-card" style={{ maxWidth: "440px" }}>
                 <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
                   <span>📸</span> Cambia Foto Profilo
                 </h3>
-                <p className="modal-desc" style={{ marginBottom: "1rem" }}>
-                  Incolla il link diretto alla tua immagine (es. ImgBB, Postimages, Google Drive o URL web):
+                <p className="modal-desc" style={{ marginBottom: "1.2rem" }}>
+                  Carica una foto dal tuo dispositivo o inserisci un link web:
                 </p>
 
-                <div style={{ marginBottom: "1rem", width: "100%" }}>
-                  <input
-                    type="url"
-                    placeholder="https://i.ibb.co/.../foto.jpg"
-                    value={fotoUrlInput}
-                    onChange={(e) => setFotoUrlInput(e.target.value)}
+                {/* Selettore Tab (File vs URL) */}
+                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem", background: "rgba(255, 255, 255, 0.03)", padding: "4px", borderRadius: "12px", border: "1px solid var(--border-subtle)" }}>
+                  <button
+                    type="button"
                     style={{
-                      width: "100%",
-                      padding: "0.75rem 1rem",
-                      borderRadius: "10px",
-                      background: "rgba(255, 255, 255, 0.05)",
-                      border: "1px solid var(--border-gold)",
-                      color: "var(--text-primary)",
-                      fontSize: "0.9rem",
-                      outline: "none",
-                      boxSizing: "border-box"
+                      flex: 1,
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "8px",
+                      border: "none",
+                      background: fotoTab === "file" ? "linear-gradient(135deg, var(--gold), var(--gold-dark))" : "transparent",
+                      color: fotoTab === "file" ? "var(--bg-primary)" : "var(--text-secondary)",
+                      fontWeight: "700",
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease"
                     }}
-                  />
+                    onClick={() => { setFotoTab("file"); setError(""); }}
+                  >
+                    📱 Dal Telefono
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "8px",
+                      border: "none",
+                      background: fotoTab === "url" ? "linear-gradient(135deg, var(--gold), var(--gold-dark))" : "transparent",
+                      color: fotoTab === "url" ? "var(--bg-primary)" : "var(--text-secondary)",
+                      fontWeight: "700",
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease"
+                    }}
+                    onClick={() => { setFotoTab("url"); setError(""); }}
+                  >
+                    🔗 Link Web
+                  </button>
                 </div>
 
-                {/* Anteprima */}
-                {fotoUrlInput.trim() && (
-                  <div style={{ marginBottom: "1rem", textAlign: "center" }}>
-                    <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>Anteprima:</p>
-                    <img 
-                      src={fotoUrlInput.trim()} 
-                      alt="Anteprima" 
-                      style={{ width: "80px", height: "80px", borderRadius: "50%", objectFit: "cover", margin: "0 auto", border: "2px solid var(--gold)" }}
-                      onError={(e) => { e.currentTarget.style.display = "none"; }}
-                      onLoad={(e) => { e.currentTarget.style.display = "block"; }}
+                {/* CONTENUTO TAB 1: UPLOAD FILE DAL TELEFONO */}
+                {fotoTab === "file" && (
+                  <div style={{ marginBottom: "1.2rem" }}>
+                    <label
+                      htmlFor="foto-file-input"
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.6rem",
+                        padding: "1.5rem 1rem",
+                        borderRadius: "14px",
+                        border: "2px dashed var(--border-gold)",
+                        background: "rgba(255, 204, 51, 0.03)",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        textAlign: "center"
+                      }}
+                    >
+                      <span style={{ fontSize: "2rem" }}>📷</span>
+                      <span style={{ fontWeight: "700", fontSize: "0.95rem", color: "var(--gold)" }}>
+                        {fotoPreview ? "Tocca per cambiare foto" : "Scegli dalla galleria o scatta foto"}
+                      </span>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                        JPG, PNG, WEBP (compressione automatica)
+                      </span>
+                    </label>
+                    <input
+                      id="foto-file-input"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleFileSelect}
                     />
+
+                    {/* Anteprima file selezionato */}
+                    {fotoPreview && (
+                      <div style={{ marginTop: "1rem", textAlign: "center" }}>
+                        <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>Anteprima:</p>
+                        <img 
+                          src={fotoPreview} 
+                          alt="Anteprima Foto" 
+                          style={{ width: "90px", height: "90px", borderRadius: "50%", objectFit: "cover", margin: "0 auto", border: "2px solid var(--gold)", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* CONTENUTO TAB 2: INSERIMENTO URL ESTERNO */}
+                {fotoTab === "url" && (
+                  <div style={{ marginBottom: "1.2rem" }}>
+                    <input
+                      type="url"
+                      placeholder="https://i.ibb.co/.../foto.jpg"
+                      value={fotoUrlInput}
+                      onChange={(e) => setFotoUrlInput(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem 1rem",
+                        borderRadius: "10px",
+                        background: "rgba(255, 255, 255, 0.05)",
+                        border: "1px solid var(--border-gold)",
+                        color: "var(--text-primary)",
+                        fontSize: "0.9rem",
+                        outline: "none",
+                        boxSizing: "border-box"
+                      }}
+                    />
+
+                    {/* Anteprima URL */}
+                    {fotoUrlInput.trim() && (
+                      <div style={{ marginTop: "1rem", textAlign: "center" }}>
+                        <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>Anteprima:</p>
+                        <img 
+                          src={fotoUrlInput.trim()} 
+                          alt="Anteprima URL" 
+                          style={{ width: "90px", height: "90px", borderRadius: "50%", objectFit: "cover", margin: "0 auto", border: "2px solid var(--gold)" }}
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          onLoad={(e) => { e.currentTarget.style.display = "block"; }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1730,7 +1907,7 @@ export default function Home() {
                   <button 
                     className="btn-modal-primary" 
                     onClick={handleUpdateFoto} 
-                    disabled={fotoLoading || !fotoUrlInput.trim()}
+                    disabled={fotoLoading || (fotoTab === "file" && !fotoBase64) || (fotoTab === "url" && !fotoUrlInput.trim())}
                   >
                     {fotoLoading ? (
                       <div className="spinner" style={{ margin: "0 auto" }} />
@@ -1740,7 +1917,13 @@ export default function Home() {
                   </button>
                   <button 
                     className="btn-modal-secondary" 
-                    onClick={() => { setShowFotoModal(false); setError(""); }}
+                    onClick={() => { 
+                      setShowFotoModal(false); 
+                      setError(""); 
+                      setFotoBase64(""); 
+                      setFotoPreview(""); 
+                      setFotoUrlInput(""); 
+                    }}
                     disabled={fotoLoading}
                   >
                     Annulla
