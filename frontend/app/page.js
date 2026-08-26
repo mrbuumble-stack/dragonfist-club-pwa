@@ -1567,18 +1567,7 @@ export default function Home() {
                 )}
               </div>
 
-              <div style={{ textAlign: "center", display: "flex", justifyContent: "center", gap: "0.75rem", marginTop: "1rem" }}>
-                <button 
-                  className="btn-modal-secondary" 
-                  style={{ padding: "0.6rem 1.2rem", fontSize: "0.85rem", width: "auto" }}
-                  onClick={() => {
-                    setFotoUrlInput(member.foto || "");
-                    setShowFotoModal(true);
-                    setError("");
-                  }}
-                >
-                  📷 Cambia Foto
-                </button>
+              <div style={{ textAlign: "center", marginTop: "1.2rem" }}>
                 <button className="btn-logout" onClick={handleLogout}>
                   Esci
                 </button>
