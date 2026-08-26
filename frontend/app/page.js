@@ -85,6 +85,11 @@ export default function Home() {
   const [adminSearchQuery, setAdminSearchQuery] = useState("");
   const [adminDeltas, setAdminDeltas] = useState({}); // key: email -> points delta
 
+  // Foto Profilo states
+  const [showFotoModal, setShowFotoModal] = useState(false);
+  const [fotoUrlInput, setFotoUrlInput] = useState("");
+  const [fotoLoading, setFotoLoading] = useState(false);
+
   const cardRef = useRef(null);
 
   // ── Service Worker & Initial Mount ──────────────────
@@ -317,6 +322,43 @@ export default function Home() {
       setError("Errore durante l'aggiornamento dei punti.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // ── Actions: Update Profile Photo ────────────────────
+  async function handleUpdateFoto() {
+    if (!fotoUrlInput.trim() || !member) return;
+    setFotoLoading(true);
+    setError("");
+    setSuccessBanner("");
+
+    try {
+      const res = await fetch("/api/member/update-foto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: member.email, fotoUrl: fotoUrlInput.trim() })
+      });
+
+      if (res.ok) {
+        setMember((prev) => ({ ...prev, foto: fotoUrlInput.trim() }));
+        
+        const lbRes = await fetch("/api/leaderboard");
+        if (lbRes.ok) {
+          const lbData = await lbRes.json();
+          setLeaderboard(lbData.leaderboard || []);
+        }
+
+        setSuccessBanner("Foto profilo aggiornata con successo! 📸");
+        setShowFotoModal(false);
+        setFotoUrlInput("");
+      } else {
+        const data = await res.json();
+        setError(data.error || "Impossibile aggiornare la foto profilo.");
+      }
+    } catch {
+      setError("Errore di connessione durante il salvataggio della foto.");
+    } finally {
+      setFotoLoading(false);
     }
   }
 
@@ -1370,7 +1412,16 @@ export default function Home() {
             <div className="profile-section" style={{ margin: "0 auto" }}>
               <div ref={cardRef} className="profile-card" onMouseMove={handleMouseMove}>
                 <div className="card-hologram" />
-                <div className="profile-avatar">
+                <div 
+                  className="profile-avatar"
+                  style={{ position: "relative", cursor: "pointer" }}
+                  onClick={() => {
+                    setFotoUrlInput(member.foto || "");
+                    setShowFotoModal(true);
+                    setError("");
+                  }}
+                  title="Clicca per cambiare foto"
+                >
                   {member.foto ? (
                     <img src={member.foto} alt={member.nome} />
                   ) : (
@@ -1378,6 +1429,23 @@ export default function Home() {
                       {getInitials(member.nome, member.cognome)}
                     </div>
                   )}
+                  <div style={{
+                    position: "absolute",
+                    bottom: "-2px",
+                    right: "-2px",
+                    background: "linear-gradient(135deg, var(--gold), var(--gold-dark))",
+                    color: "var(--bg-primary)",
+                    borderRadius: "50%",
+                    width: "24px",
+                    height: "24px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.75rem",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.5)"
+                  }}>
+                    ✏️
+                  </div>
                 </div>
 
                 <h2 className="profile-name">
@@ -1415,7 +1483,18 @@ export default function Home() {
                 )}
               </div>
 
-              <div style={{ textAlign: "center" }}>
+              <div style={{ textAlign: "center", display: "flex", justifyContent: "center", gap: "0.75rem", marginTop: "1rem" }}>
+                <button 
+                  className="btn-modal-secondary" 
+                  style={{ padding: "0.6rem 1.2rem", fontSize: "0.85rem", width: "auto" }}
+                  onClick={() => {
+                    setFotoUrlInput(member.foto || "");
+                    setShowFotoModal(true);
+                    setError("");
+                  }}
+                >
+                  📷 Cambia Foto
+                </button>
                 <button className="btn-logout" onClick={handleLogout}>
                   Esci
                 </button>
@@ -1594,6 +1673,77 @@ export default function Home() {
                 <div className="modal-actions" style={{ marginTop: "1.5rem" }}>
                   <button className="btn-modal-secondary" style={{ width: "100%" }} onClick={() => setShowGamesModal(false)}>
                     Chiudi
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL CAMBIA FOTO PROFILO */}
+          {showFotoModal && (
+            <div className="modal-overlay">
+              <div className="modal-card" style={{ maxWidth: "420px" }}>
+                <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                  <span>📸</span> Cambia Foto Profilo
+                </h3>
+                <p className="modal-desc" style={{ marginBottom: "1rem" }}>
+                  Incolla il link diretto alla tua immagine (es. ImgBB, Postimages, Google Drive o URL web):
+                </p>
+
+                <div style={{ marginBottom: "1rem", width: "100%" }}>
+                  <input
+                    type="url"
+                    placeholder="https://i.ibb.co/.../foto.jpg"
+                    value={fotoUrlInput}
+                    onChange={(e) => setFotoUrlInput(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      borderRadius: "10px",
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid var(--border-gold)",
+                      color: "var(--text-primary)",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                      boxSizing: "border-box"
+                    }}
+                  />
+                </div>
+
+                {/* Anteprima */}
+                {fotoUrlInput.trim() && (
+                  <div style={{ marginBottom: "1rem", textAlign: "center" }}>
+                    <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>Anteprima:</p>
+                    <img 
+                      src={fotoUrlInput.trim()} 
+                      alt="Anteprima" 
+                      style={{ width: "80px", height: "80px", borderRadius: "50%", objectFit: "cover", margin: "0 auto", border: "2px solid var(--gold)" }}
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      onLoad={(e) => { e.currentTarget.style.display = "block"; }}
+                    />
+                  </div>
+                )}
+
+                {error && <p className="error-text" style={{ marginBottom: "1rem" }}>{error}</p>}
+
+                <div className="modal-actions" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <button 
+                    className="btn-modal-primary" 
+                    onClick={handleUpdateFoto} 
+                    disabled={fotoLoading || !fotoUrlInput.trim()}
+                  >
+                    {fotoLoading ? (
+                      <div className="spinner" style={{ margin: "0 auto" }} />
+                    ) : (
+                      "Salva Foto 💾"
+                    )}
+                  </button>
+                  <button 
+                    className="btn-modal-secondary" 
+                    onClick={() => { setShowFotoModal(false); setError(""); }}
+                    disabled={fotoLoading}
+                  >
+                    Annulla
                   </button>
                 </div>
               </div>
