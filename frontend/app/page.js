@@ -89,9 +89,15 @@ export default function Home() {
   const [showFotoModal, setShowFotoModal] = useState(false);
   const [fotoTab, setFotoTab] = useState("file"); // "file" | "url"
   const [fotoUrlInput, setFotoUrlInput] = useState("");
-  const [fotoBase64, setFotoBase64] = useState("");
-  const [fotoPreview, setFotoPreview] = useState("");
   const [fotoLoading, setFotoLoading] = useState(false);
+
+  // Interactive Cropper states
+  const [cropRawImage, setCropRawImage] = useState("");
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropPan, setCropPan] = useState({ x: 0, y: 0 });
+  const [cropRotation, setCropRotation] = useState(0);
+  const [isCropperDragging, setIsCropperDragging] = useState(false);
+  const [cropperDragStart, setCropperDragStart] = useState({ x: 0, y: 0 });
 
   const cardRef = useRef(null);
 
@@ -328,66 +334,90 @@ export default function Home() {
     }
   }
 
-  // ── Actions: Update Profile Photo ────────────────────
-  function processAndCompressImage(file) {
+  // ── Actions: Update Profile Photo (Interactive Crop) ──
+  function generateCroppedImage(imageSrc, pan, zoom, rotation, outputSize = 400) {
     return new Promise((resolve, reject) => {
-      if (!file || !file.type.startsWith("image/")) {
-        reject(new Error("Seleziona un file immagine valido (JPG, PNG, WEBP)."));
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const maxDim = 400;
-          let width = img.width;
-          let height = img.height;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = outputSize;
+        canvas.height = outputSize;
+        const ctx = canvas.getContext("2d");
 
-          if (width > height) {
-            if (width > maxDim) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            }
-          } else {
-            if (height > maxDim) {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
+        // Dimensione del box di anteprima ritaglio nella UI
+        const vpSize = 240;
+        const scaleFactor = outputSize / vpSize;
 
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, width, height);
+        ctx.save();
+        // Centra nel canvas di output
+        ctx.translate(outputSize / 2, outputSize / 2);
 
-          // Comprimi in JPEG qualità 82%
-          const base64 = canvas.toDataURL("image/jpeg", 0.82);
-          resolve(base64);
-        };
-        img.onerror = () => reject(new Error("Impossibile elaborare l'immagine."));
-        img.src = e.target.result;
+        // Applica spostamento (Pan)
+        ctx.translate(pan.x * scaleFactor, pan.y * scaleFactor);
+
+        // Applica rotazione
+        ctx.rotate((rotation * Math.PI) / 180);
+
+        // Applica zoom
+        ctx.scale(zoom * scaleFactor, zoom * scaleFactor);
+
+        // Calcola dimensioni mantenendo le proporzioni
+        const aspect = img.width / img.height;
+        let drawWidth, drawHeight;
+        if (aspect >= 1) {
+          drawHeight = vpSize;
+          drawWidth = vpSize * aspect;
+        } else {
+          drawWidth = vpSize;
+          drawHeight = vpSize / aspect;
+        }
+
+        ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+        ctx.restore();
+
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
       };
-      reader.onerror = () => reject(new Error("Errore durante la lettura del file."));
-      reader.readAsDataURL(file);
+      img.onerror = () => reject(new Error("Errore durante l'elaborazione del ritaglio."));
+      img.src = imageSrc;
     });
   }
 
-  async function handleFileSelect(e) {
+  function handleFileSelect(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    setError("");
-    setFotoLoading(true);
-    try {
-      const compressed = await processAndCompressImage(file);
-      setFotoBase64(compressed);
-      setFotoPreview(compressed);
-    } catch (err) {
-      setError(err.message || "Errore nella compressione dell'immagine.");
-    } finally {
-      setFotoLoading(false);
+    if (!file.type.startsWith("image/")) {
+      setError("Seleziona un file immagine valido (JPG, PNG, WEBP).");
+      return;
     }
+    setError("");
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCropRawImage(event.target.result);
+      setCropZoom(1);
+      setCropPan({ x: 0, y: 0 });
+      setCropRotation(0);
+    };
+    reader.onerror = () => setError("Errore durante la lettura del file.");
+    reader.readAsDataURL(file);
   }
+
+  // Gestori Drag per riposizionamento foto nel ritaglio
+  const handleCropperDragStart = (clientX, clientY) => {
+    setIsCropperDragging(true);
+    setCropperDragStart({ x: clientX - cropPan.x, y: clientY - cropPan.y });
+  };
+
+  const handleCropperDragMove = (clientX, clientY) => {
+    if (!isCropperDragging) return;
+    setCropPan({
+      x: clientX - cropperDragStart.x,
+      y: clientY - cropperDragStart.y
+    });
+  };
+
+  const handleCropperDragEnd = () => {
+    setIsCropperDragging(false);
+  };
 
   async function handleUpdateFoto() {
     if (!member) return;
@@ -395,8 +425,8 @@ export default function Home() {
       setError("Inserisci un link URL valido.");
       return;
     }
-    if (fotoTab === "file" && !fotoBase64) {
-      setError("Seleziona prima una foto dal tuo dispositivo.");
+    if (fotoTab === "file" && !cropRawImage) {
+      setError("Seleziona prima una foto da caricare.");
       return;
     }
 
@@ -404,9 +434,20 @@ export default function Home() {
     setError("");
     setSuccessBanner("");
 
+    let base64ToUpload = "";
+    if (fotoTab === "file") {
+      try {
+        base64ToUpload = await generateCroppedImage(cropRawImage, cropPan, cropZoom, cropRotation, 400);
+      } catch (cropErr) {
+        setError(cropErr.message || "Errore nel ritaglio dell'immagine.");
+        setFotoLoading(false);
+        return;
+      }
+    }
+
     const payload = { email: member.email };
     if (fotoTab === "file") {
-      payload.base64Data = fotoBase64;
+      payload.base64Data = base64ToUpload;
       payload.mimeType = "image/jpeg";
     } else {
       payload.fotoUrl = fotoUrlInput.trim();
@@ -421,7 +462,7 @@ export default function Home() {
 
       if (res.ok) {
         const resData = await res.json();
-        const newFoto = resData.fotoUrl || (fotoTab === "url" ? fotoUrlInput.trim() : fotoBase64);
+        const newFoto = resData.fotoUrl || (fotoTab === "url" ? fotoUrlInput.trim() : base64ToUpload);
         setMember((prev) => ({ ...prev, foto: newFoto }));
         
         const lbRes = await fetch("/api/leaderboard");
@@ -430,11 +471,13 @@ export default function Home() {
           setLeaderboard(lbData.leaderboard || []);
         }
 
-        setSuccessBanner("Foto profilo aggiornata con successo! 📸");
+        setSuccessBanner("Foto profilo ritagliata e salvata con successo! 📸");
         setShowFotoModal(false);
         setFotoUrlInput("");
-        setFotoBase64("");
-        setFotoPreview("");
+        setCropRawImage("");
+        setCropZoom(1);
+        setCropPan({ x: 0, y: 0 });
+        setCropRotation(0);
       } else {
         const data = await res.json();
         setError(data.error || "Impossibile aggiornare la foto profilo.");
@@ -1755,12 +1798,12 @@ export default function Home() {
           {/* MODAL CAMBIA FOTO PROFILO */}
           {showFotoModal && (
             <div className="modal-overlay">
-              <div className="modal-card" style={{ maxWidth: "440px" }}>
+              <div className="modal-card" style={{ maxWidth: "440px", maxHeight: "90vh", overflowY: "auto" }}>
                 <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
                   <span>📸</span> Cambia Foto Profilo
                 </h3>
                 <p className="modal-desc" style={{ marginBottom: "1.2rem" }}>
-                  Carica una foto dal tuo dispositivo o inserisci un link web:
+                  Carica una foto e ritagliala a tuo piacimento:
                 </p>
 
                 {/* Selettore Tab (File vs URL) */}
@@ -1781,7 +1824,7 @@ export default function Home() {
                     }}
                     onClick={() => { setFotoTab("file"); setError(""); }}
                   >
-                    📱 Dal Telefono
+                    📱 Upload
                   </button>
                   <button
                     type="button"
@@ -1803,34 +1846,9 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* CONTENUTO TAB 1: UPLOAD FILE DAL TELEFONO */}
+                {/* CONTENUTO TAB 1: UPLOAD & RITAGLIO INTERATTIVO */}
                 {fotoTab === "file" && (
                   <div style={{ marginBottom: "1.2rem" }}>
-                    <label
-                      htmlFor="foto-file-input"
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "0.6rem",
-                        padding: "1.5rem 1rem",
-                        borderRadius: "14px",
-                        border: "2px dashed var(--border-gold)",
-                        background: "rgba(255, 204, 51, 0.03)",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        textAlign: "center"
-                      }}
-                    >
-                      <span style={{ fontSize: "2rem" }}>📷</span>
-                      <span style={{ fontWeight: "700", fontSize: "0.95rem", color: "var(--gold)" }}>
-                        {fotoPreview ? "Tocca per cambiare foto" : "Scegli dalla galleria o scatta foto"}
-                      </span>
-                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                        JPG, PNG, WEBP (compressione automatica)
-                      </span>
-                    </label>
                     <input
                       id="foto-file-input"
                       type="file"
@@ -1839,15 +1857,144 @@ export default function Home() {
                       onChange={handleFileSelect}
                     />
 
-                    {/* Anteprima file selezionato */}
-                    {fotoPreview && (
-                      <div style={{ marginTop: "1rem", textAlign: "center" }}>
-                        <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>Anteprima:</p>
-                        <img 
-                          src={fotoPreview} 
-                          alt="Anteprima Foto" 
-                          style={{ width: "90px", height: "90px", borderRadius: "50%", objectFit: "cover", margin: "0 auto", border: "2px solid var(--gold)", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}
-                        />
+                    {!cropRawImage ? (
+                      <label
+                        htmlFor="foto-file-input"
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.6rem",
+                          padding: "2rem 1rem",
+                          borderRadius: "14px",
+                          border: "2px dashed var(--border-gold)",
+                          background: "rgba(255, 204, 51, 0.03)",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          textAlign: "center"
+                        }}
+                      >
+                        <span style={{ fontSize: "2.4rem" }}>📷</span>
+                        <span style={{ fontWeight: "700", fontSize: "1rem", color: "var(--gold)" }}>
+                          Scegli foto o scatta selfie
+                        </span>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                          Supporta qualsiasi formato (JPG, PNG, WEBP)
+                        </span>
+                      </label>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.8rem" }}>
+                        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: 0 }}>
+                          👆 <b>Trascina</b> per spostare • Usa lo <b>slider</b> per zoomare
+                        </p>
+
+                        {/* Viewport di Ritaglio Interattivo */}
+                        <div
+                          style={{
+                            width: "240px",
+                            height: "240px",
+                            borderRadius: "16px",
+                            position: "relative",
+                            overflow: "hidden",
+                            background: "#05070c",
+                            cursor: isCropperDragging ? "grabbing" : "grab",
+                            touchAction: "none",
+                            userSelect: "none",
+                            boxShadow: "0 8px 24px rgba(0,0,0,0.6)"
+                          }}
+                          onMouseDown={(e) => handleCropperDragStart(e.clientX, e.clientY)}
+                          onMouseMove={(e) => handleCropperDragMove(e.clientX, e.clientY)}
+                          onMouseUp={handleCropperDragEnd}
+                          onMouseLeave={handleCropperDragEnd}
+                          onTouchStart={(e) => {
+                            if (e.touches.length === 1) handleCropperDragStart(e.touches[0].clientX, e.touches[0].clientY);
+                          }}
+                          onTouchMove={(e) => {
+                            if (e.touches.length === 1) handleCropperDragMove(e.touches[0].clientX, e.touches[0].clientY);
+                          }}
+                          onTouchEnd={handleCropperDragEnd}
+                        >
+                          {/* Immagine originale trasformata */}
+                          <img
+                            src={cropRawImage}
+                            alt="Ritaglio"
+                            draggable={false}
+                            style={{
+                              position: "absolute",
+                              top: "50%",
+                              left: "50%",
+                              transform: `translate(-50%, -50%) translate(${cropPan.x}px, ${cropPan.y}px) scale(${cropZoom}) rotate(${cropRotation}deg)`,
+                              transformOrigin: "center center",
+                              maxWidth: "none",
+                              maxHeight: "none",
+                              width: "240px",
+                              height: "auto",
+                              pointerEvents: "none",
+                              userSelect: "none"
+                            }}
+                          />
+
+                          {/* Maschera circolare di anteprima avatar */}
+                          <div
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              pointerEvents: "none",
+                              borderRadius: "50%",
+                              border: "2px solid var(--gold)",
+                              boxShadow: "0 0 0 9999px rgba(10, 14, 23, 0.72)"
+                            }}
+                          />
+                        </div>
+
+                        {/* Slider di Zoom */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", width: "100%", maxWidth: "260px", marginTop: "0.2rem" }}>
+                          <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>🔍</span>
+                          <input
+                            type="range"
+                            min="0.6"
+                            max="3"
+                            step="0.02"
+                            value={cropZoom}
+                            onChange={(e) => setCropZoom(parseFloat(e.target.value))}
+                            style={{ flex: 1, accentColor: "var(--gold)", cursor: "pointer" }}
+                          />
+                          <span style={{ fontSize: "0.8rem", color: "var(--gold)", fontWeight: "700", minWidth: "40px", textAlign: "right" }}>
+                            {Math.round(cropZoom * 100)}%
+                          </span>
+                        </div>
+
+                        {/* Controlli di Rotazione / Reset / Cambio file */}
+                        <div style={{ display: "flex", gap: "0.4rem", width: "100%", justifyContent: "center" }}>
+                          <button
+                            type="button"
+                            className="btn-modal-secondary"
+                            style={{ padding: "0.4rem 0.7rem", fontSize: "0.78rem" }}
+                            onClick={() => setCropRotation((prev) => (prev + 90) % 360)}
+                          >
+                            🔄 Ruota
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-modal-secondary"
+                            style={{ padding: "0.4rem 0.7rem", fontSize: "0.78rem" }}
+                            onClick={() => { setCropZoom(1); setCropPan({ x: 0, y: 0 }); setCropRotation(0); }}
+                          >
+                            ⏮️ Centra
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-modal-secondary"
+                            style={{ padding: "0.4rem 0.7rem", fontSize: "0.78rem" }}
+                            onClick={() => {
+                              const input = document.getElementById("foto-file-input");
+                              if (input) input.click();
+                            }}
+                          >
+                            📁 Altra Foto
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1896,7 +2043,7 @@ export default function Home() {
                   <button 
                     className="btn-modal-primary" 
                     onClick={handleUpdateFoto} 
-                    disabled={fotoLoading || (fotoTab === "file" && !fotoBase64) || (fotoTab === "url" && !fotoUrlInput.trim())}
+                    disabled={fotoLoading || (fotoTab === "file" && !cropRawImage) || (fotoTab === "url" && !fotoUrlInput.trim())}
                   >
                     {fotoLoading ? (
                       <div className="spinner" style={{ margin: "0 auto" }} />
@@ -1909,8 +2056,10 @@ export default function Home() {
                     onClick={() => { 
                       setShowFotoModal(false); 
                       setError(""); 
-                      setFotoBase64(""); 
-                      setFotoPreview(""); 
+                      setCropRawImage("");
+                      setCropZoom(1);
+                      setCropPan({ x: 0, y: 0 });
+                      setCropRotation(0);
                       setFotoUrlInput(""); 
                     }}
                     disabled={fotoLoading}
