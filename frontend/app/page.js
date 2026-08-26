@@ -1752,326 +1752,376 @@ export default function Home() {
                 </button>
               </div>
             </div>
-          )}          {showGamesModal && (
-            <div className="modal-overlay">
-              <div className="modal-card" style={{ maxWidth: "420px" }}>
-                <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                  <span>🎲</span> Ludoteca Club
-                </h3>
-                <p className="modal-desc" style={{ marginBottom: "1rem" }}>Tutti i giochi registrati in catalogo:</p>
-                
-                <div className="games-list-simple" style={{ maxHeight: "350px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem", paddingRight: "0.25rem", textAlign: "left" }}>
-                  {games.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((game) => (
-                    <div 
-                      key={game.id} 
-                      style={{ 
-                        padding: "0.85rem 1rem", 
-                        background: "rgba(255, 255, 255, 0.03)", 
-                        borderRadius: "14px", 
-                        border: "1px solid var(--border-subtle)",
-                        fontWeight: "600",
-                        fontSize: "0.95rem",
-                        color: "var(--text-primary)",
+          )}
+        </div>
+
+        {/* MODAL CATALOGO GIOCHI (In primo piano con X di chiusura) */}
+        {showGamesModal && (
+          <div 
+            className="modal-overlay"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowGamesModal(false);
+            }}
+          >
+            <div className="modal-card" style={{ maxWidth: "440px", position: "relative" }}>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowGamesModal(false)}
+                title="Chiudi"
+              >
+                ✕
+              </button>
+
+              <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginTop: "0.2rem" }}>
+                <span>🎲</span> Ludoteca Club
+              </h3>
+              <p className="modal-desc" style={{ marginBottom: "1.2rem", textAlign: "center" }}>
+                Tutti i giochi registrati in catalogo:
+              </p>
+              
+              <div className="games-list-simple" style={{ maxHeight: "350px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem", paddingRight: "0.25rem", textAlign: "left" }}>
+                {games.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((game) => (
+                  <div 
+                    key={game.id} 
+                    style={{ 
+                      padding: "0.85rem 1rem", 
+                      background: "rgba(255, 255, 255, 0.03)", 
+                      borderRadius: "14px", 
+                      border: "1px solid var(--border-subtle)",
+                      fontWeight: "600",
+                      fontSize: "0.95rem",
+                      color: "var(--text-primary)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.6rem"
+                    }}
+                  >
+                    <span style={{ color: "var(--gold)" }}>•</span>
+                    {game.nome}
+                  </div>
+                ))}
+                {games.length === 0 && (
+                  <p style={{ textAlign: "center", color: "var(--text-secondary)", padding: "1.5rem" }}>Caricamento giochi in corso...</p>
+                )}
+              </div>
+
+              <div className="modal-actions" style={{ marginTop: "1.5rem" }}>
+                <button className="btn-modal-secondary" style={{ width: "100%" }} onClick={() => setShowGamesModal(false)}>
+                  Chiudi
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL CAMBIA FOTO PROFILO (In primo piano con X di chiusura) */}
+        {showFotoModal && (
+          <div 
+            className="modal-overlay"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !fotoLoading) {
+                setShowFotoModal(false);
+                setError("");
+                setCropRawImage("");
+                setCropZoom(1);
+                setCropPan({ x: 0, y: 0 });
+                setCropRotation(0);
+                setFotoUrlInput("");
+              }
+            }}
+          >
+            <div className="modal-card" style={{ maxWidth: "440px", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => {
+                  setShowFotoModal(false);
+                  setError("");
+                  setCropRawImage("");
+                  setCropZoom(1);
+                  setCropPan({ x: 0, y: 0 });
+                  setCropRotation(0);
+                  setFotoUrlInput("");
+                }}
+                disabled={fotoLoading}
+                title="Chiudi"
+              >
+                ✕
+              </button>
+
+              <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginTop: "0.2rem" }}>
+                <span>📸</span> Cambia Foto Profilo
+              </h3>
+              <p className="modal-desc" style={{ marginBottom: "1.2rem", textAlign: "center" }}>
+                Carica una foto e ritagliala a tuo piacimento:
+              </p>
+
+              {/* Selettore Tab (File vs URL) */}
+              <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem", background: "rgba(255, 255, 255, 0.03)", padding: "4px", borderRadius: "12px", border: "1px solid var(--border-subtle)" }}>
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    padding: "0.5rem 0.75rem",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: fotoTab === "file" ? "linear-gradient(135deg, var(--gold), var(--gold-dark))" : "transparent",
+                    color: fotoTab === "file" ? "var(--bg-primary)" : "var(--text-secondary)",
+                    fontWeight: "700",
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                  onClick={() => { setFotoTab("file"); setError(""); }}
+                >
+                  📱 Upload
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    padding: "0.5rem 0.75rem",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: fotoTab === "url" ? "linear-gradient(135deg, var(--gold), var(--gold-dark))" : "transparent",
+                    color: fotoTab === "url" ? "var(--bg-primary)" : "var(--text-secondary)",
+                    fontWeight: "700",
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                  onClick={() => { setFotoTab("url"); setError(""); }}
+                >
+                  🔗 Link Web
+                </button>
+              </div>
+
+              {/* CONTENUTO TAB 1: UPLOAD & RITAGLIO INTERATTIVO */}
+              {fotoTab === "file" && (
+                <div style={{ marginBottom: "1.2rem" }}>
+                  <input
+                    id="foto-file-input"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleFileSelect}
+                  />
+
+                  {!cropRawImage ? (
+                    <label
+                      htmlFor="foto-file-input"
+                      style={{
                         display: "flex",
+                        flexDirection: "column",
                         alignItems: "center",
-                        gap: "0.6rem"
+                        justifyContent: "center",
+                        gap: "0.6rem",
+                        padding: "2rem 1rem",
+                        borderRadius: "14px",
+                        border: "2px dashed var(--border-gold)",
+                        background: "rgba(255, 204, 51, 0.03)",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        textAlign: "center"
                       }}
                     >
-                      <span style={{ color: "var(--gold)" }}>•</span>
-                      {game.nome}
-                    </div>
-                  ))}
-                  {games.length === 0 && (
-                    <p style={{ textAlign: "center", color: "var(--text-secondary)", padding: "1.5rem" }}>Caricamento giochi in corso...</p>
-                  )}
-                </div>
+                      <span style={{ fontSize: "2.4rem" }}>📷</span>
+                      <span style={{ fontWeight: "700", fontSize: "1rem", color: "var(--gold)" }}>
+                        Scegli foto o scatta selfie
+                      </span>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                        Supporta qualsiasi formato (JPG, PNG, WEBP)
+                      </span>
+                    </label>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.8rem" }}>
+                      <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: 0 }}>
+                        👆 <b>Trascina</b> per spostare • Usa lo <b>slider</b> per zoomare
+                      </p>
 
-                <div className="modal-actions" style={{ marginTop: "1.5rem" }}>
-                  <button className="btn-modal-secondary" style={{ width: "100%" }} onClick={() => setShowGamesModal(false)}>
-                    Chiudi
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* MODAL CAMBIA FOTO PROFILO */}
-          {showFotoModal && (
-            <div className="modal-overlay">
-              <div className="modal-card" style={{ maxWidth: "440px", maxHeight: "90vh", overflowY: "auto" }}>
-                <h3 className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                  <span>📸</span> Cambia Foto Profilo
-                </h3>
-                <p className="modal-desc" style={{ marginBottom: "1.2rem" }}>
-                  Carica una foto e ritagliala a tuo piacimento:
-                </p>
-
-                {/* Selettore Tab (File vs URL) */}
-                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem", background: "rgba(255, 255, 255, 0.03)", padding: "4px", borderRadius: "12px", border: "1px solid var(--border-subtle)" }}>
-                  <button
-                    type="button"
-                    style={{
-                      flex: 1,
-                      padding: "0.5rem 0.75rem",
-                      borderRadius: "8px",
-                      border: "none",
-                      background: fotoTab === "file" ? "linear-gradient(135deg, var(--gold), var(--gold-dark))" : "transparent",
-                      color: fotoTab === "file" ? "var(--bg-primary)" : "var(--text-secondary)",
-                      fontWeight: "700",
-                      fontSize: "0.85rem",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease"
-                    }}
-                    onClick={() => { setFotoTab("file"); setError(""); }}
-                  >
-                    📱 Upload
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                      flex: 1,
-                      padding: "0.5rem 0.75rem",
-                      borderRadius: "8px",
-                      border: "none",
-                      background: fotoTab === "url" ? "linear-gradient(135deg, var(--gold), var(--gold-dark))" : "transparent",
-                      color: fotoTab === "url" ? "var(--bg-primary)" : "var(--text-secondary)",
-                      fontWeight: "700",
-                      fontSize: "0.85rem",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease"
-                    }}
-                    onClick={() => { setFotoTab("url"); setError(""); }}
-                  >
-                    🔗 Link Web
-                  </button>
-                </div>
-
-                {/* CONTENUTO TAB 1: UPLOAD & RITAGLIO INTERATTIVO */}
-                {fotoTab === "file" && (
-                  <div style={{ marginBottom: "1.2rem" }}>
-                    <input
-                      id="foto-file-input"
-                      type="file"
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      onChange={handleFileSelect}
-                    />
-
-                    {!cropRawImage ? (
-                      <label
-                        htmlFor="foto-file-input"
+                      {/* Viewport di Ritaglio Interattivo */}
+                      <div
                         style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "0.6rem",
-                          padding: "2rem 1rem",
-                          borderRadius: "14px",
-                          border: "2px dashed var(--border-gold)",
-                          background: "rgba(255, 204, 51, 0.03)",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                          textAlign: "center"
+                          width: "240px",
+                          height: "240px",
+                          borderRadius: "16px",
+                          position: "relative",
+                          overflow: "hidden",
+                          background: "#05070c",
+                          cursor: isCropperDragging ? "grabbing" : "grab",
+                          touchAction: "none",
+                          userSelect: "none",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.6)"
                         }}
+                        onMouseDown={(e) => handleCropperDragStart(e.clientX, e.clientY)}
+                        onMouseMove={(e) => handleCropperDragMove(e.clientX, e.clientY)}
+                        onMouseUp={handleCropperDragEnd}
+                        onMouseLeave={handleCropperDragEnd}
+                        onTouchStart={(e) => {
+                          if (e.touches.length === 1) handleCropperDragStart(e.touches[0].clientX, e.touches[0].clientY);
+                        }}
+                        onTouchMove={(e) => {
+                          if (e.touches.length === 1) handleCropperDragMove(e.touches[0].clientX, e.touches[0].clientY);
+                        }}
+                        onTouchEnd={handleCropperDragEnd}
                       >
-                        <span style={{ fontSize: "2.4rem" }}>📷</span>
-                        <span style={{ fontWeight: "700", fontSize: "1rem", color: "var(--gold)" }}>
-                          Scegli foto o scatta selfie
-                        </span>
-                        <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                          Supporta qualsiasi formato (JPG, PNG, WEBP)
-                        </span>
-                      </label>
-                    ) : (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.8rem" }}>
-                        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: 0 }}>
-                          👆 <b>Trascina</b> per spostare • Usa lo <b>slider</b> per zoomare
-                        </p>
+                        {/* Immagine originale trasformata */}
+                        <img
+                          src={cropRawImage}
+                          alt="Ritaglio"
+                          draggable={false}
+                          style={{
+                            position: "absolute",
+                            top: "50%",
+                            left: "50%",
+                            transform: `translate(-50%, -50%) translate(${cropPan.x}px, ${cropPan.y}px) scale(${cropZoom}) rotate(${cropRotation}deg)`,
+                            transformOrigin: "center center",
+                            maxWidth: "none",
+                            maxHeight: "none",
+                            width: "240px",
+                            height: "auto",
+                            pointerEvents: "none",
+                            userSelect: "none"
+                          }}
+                        />
 
-                        {/* Viewport di Ritaglio Interattivo */}
+                        {/* Maschera circolare di anteprima avatar */}
                         <div
                           style={{
-                            width: "240px",
-                            height: "240px",
-                            borderRadius: "16px",
-                            position: "relative",
-                            overflow: "hidden",
-                            background: "#05070c",
-                            cursor: isCropperDragging ? "grabbing" : "grab",
-                            touchAction: "none",
-                            userSelect: "none",
-                            boxShadow: "0 8px 24px rgba(0,0,0,0.6)"
+                            position: "absolute",
+                            inset: 0,
+                            pointerEvents: "none",
+                            borderRadius: "50%",
+                            border: "2px solid var(--gold)",
+                            boxShadow: "0 0 0 9999px rgba(10, 14, 23, 0.72)"
                           }}
-                          onMouseDown={(e) => handleCropperDragStart(e.clientX, e.clientY)}
-                          onMouseMove={(e) => handleCropperDragMove(e.clientX, e.clientY)}
-                          onMouseUp={handleCropperDragEnd}
-                          onMouseLeave={handleCropperDragEnd}
-                          onTouchStart={(e) => {
-                            if (e.touches.length === 1) handleCropperDragStart(e.touches[0].clientX, e.touches[0].clientY);
-                          }}
-                          onTouchMove={(e) => {
-                            if (e.touches.length === 1) handleCropperDragMove(e.touches[0].clientX, e.touches[0].clientY);
-                          }}
-                          onTouchEnd={handleCropperDragEnd}
-                        >
-                          {/* Immagine originale trasformata */}
-                          <img
-                            src={cropRawImage}
-                            alt="Ritaglio"
-                            draggable={false}
-                            style={{
-                              position: "absolute",
-                              top: "50%",
-                              left: "50%",
-                              transform: `translate(-50%, -50%) translate(${cropPan.x}px, ${cropPan.y}px) scale(${cropZoom}) rotate(${cropRotation}deg)`,
-                              transformOrigin: "center center",
-                              maxWidth: "none",
-                              maxHeight: "none",
-                              width: "240px",
-                              height: "auto",
-                              pointerEvents: "none",
-                              userSelect: "none"
-                            }}
-                          />
-
-                          {/* Maschera circolare di anteprima avatar */}
-                          <div
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              pointerEvents: "none",
-                              borderRadius: "50%",
-                              border: "2px solid var(--gold)",
-                              boxShadow: "0 0 0 9999px rgba(10, 14, 23, 0.72)"
-                            }}
-                          />
-                        </div>
-
-                        {/* Slider di Zoom */}
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", width: "100%", maxWidth: "260px", marginTop: "0.2rem" }}>
-                          <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>🔍</span>
-                          <input
-                            type="range"
-                            min="0.6"
-                            max="3"
-                            step="0.02"
-                            value={cropZoom}
-                            onChange={(e) => setCropZoom(parseFloat(e.target.value))}
-                            style={{ flex: 1, accentColor: "var(--gold)", cursor: "pointer" }}
-                          />
-                          <span style={{ fontSize: "0.8rem", color: "var(--gold)", fontWeight: "700", minWidth: "40px", textAlign: "right" }}>
-                            {Math.round(cropZoom * 100)}%
-                          </span>
-                        </div>
-
-                        {/* Controlli di Rotazione / Reset / Cambio file */}
-                        <div style={{ display: "flex", gap: "0.4rem", width: "100%", justifyContent: "center" }}>
-                          <button
-                            type="button"
-                            className="btn-modal-secondary"
-                            style={{ padding: "0.4rem 0.7rem", fontSize: "0.78rem" }}
-                            onClick={() => setCropRotation((prev) => (prev + 90) % 360)}
-                          >
-                            🔄 Ruota
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-modal-secondary"
-                            style={{ padding: "0.4rem 0.7rem", fontSize: "0.78rem" }}
-                            onClick={() => { setCropZoom(1); setCropPan({ x: 0, y: 0 }); setCropRotation(0); }}
-                          >
-                            ⏮️ Centra
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-modal-secondary"
-                            style={{ padding: "0.4rem 0.7rem", fontSize: "0.78rem" }}
-                            onClick={() => {
-                              const input = document.getElementById("foto-file-input");
-                              if (input) input.click();
-                            }}
-                          >
-                            📁 Altra Foto
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* CONTENUTO TAB 2: INSERIMENTO URL ESTERNO */}
-                {fotoTab === "url" && (
-                  <div style={{ marginBottom: "1.2rem" }}>
-                    <input
-                      type="url"
-                      placeholder="https://i.ibb.co/.../foto.jpg"
-                      value={fotoUrlInput}
-                      onChange={(e) => setFotoUrlInput(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem 1rem",
-                        borderRadius: "10px",
-                        background: "rgba(255, 255, 255, 0.05)",
-                        border: "1px solid var(--border-gold)",
-                        color: "var(--text-primary)",
-                        fontSize: "0.9rem",
-                        outline: "none",
-                        boxSizing: "border-box"
-                      }}
-                    />
-
-                    {/* Anteprima URL */}
-                    {fotoUrlInput.trim() && (
-                      <div style={{ marginTop: "1rem", textAlign: "center" }}>
-                        <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>Anteprima:</p>
-                        <img 
-                          src={fotoUrlInput.trim()} 
-                          alt="Anteprima URL" 
-                          style={{ width: "90px", height: "90px", borderRadius: "50%", objectFit: "cover", margin: "0 auto", border: "2px solid var(--gold)" }}
-                          onError={(e) => { e.currentTarget.style.display = "none"; }}
-                          onLoad={(e) => { e.currentTarget.style.display = "block"; }}
                         />
                       </div>
-                    )}
-                  </div>
-                )}
 
-                {error && <p className="error-text" style={{ marginBottom: "1rem" }}>{error}</p>}
+                      {/* Slider di Zoom */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", width: "100%", maxWidth: "260px", marginTop: "0.2rem" }}>
+                        <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>🔍</span>
+                        <input
+                          type="range"
+                          min="0.6"
+                          max="3"
+                          step="0.02"
+                          value={cropZoom}
+                          onChange={(e) => setCropZoom(parseFloat(e.target.value))}
+                          style={{ flex: 1, accentColor: "var(--gold)", cursor: "pointer" }}
+                        />
+                        <span style={{ fontSize: "0.8rem", color: "var(--gold)", fontWeight: "700", minWidth: "40px", textAlign: "right" }}>
+                          {Math.round(cropZoom * 100)}%
+                        </span>
+                      </div>
 
-                <div className="modal-actions" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  <button 
-                    className="btn-modal-primary" 
-                    onClick={handleUpdateFoto} 
-                    disabled={fotoLoading || (fotoTab === "file" && !cropRawImage) || (fotoTab === "url" && !fotoUrlInput.trim())}
-                  >
-                    {fotoLoading ? (
-                      <div className="spinner" style={{ margin: "0 auto" }} />
-                    ) : (
-                      "Salva Foto 💾"
-                    )}
-                  </button>
-                  <button 
-                    className="btn-modal-secondary" 
-                    onClick={() => { 
-                      setShowFotoModal(false); 
-                      setError(""); 
-                      setCropRawImage("");
-                      setCropZoom(1);
-                      setCropPan({ x: 0, y: 0 });
-                      setCropRotation(0);
-                      setFotoUrlInput(""); 
-                    }}
-                    disabled={fotoLoading}
-                  >
-                    Annulla
-                  </button>
+                      {/* Controlli di Rotazione / Reset / Cambio file */}
+                      <div style={{ display: "flex", gap: "0.4rem", width: "100%", justifyContent: "center" }}>
+                        <button
+                          type="button"
+                          className="btn-modal-secondary"
+                          style={{ padding: "0.4rem 0.7rem", fontSize: "0.78rem" }}
+                          onClick={() => setCropRotation((prev) => (prev + 90) % 360)}
+                        >
+                          🔄 Ruota
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-modal-secondary"
+                          style={{ padding: "0.4rem 0.7rem", fontSize: "0.78rem" }}
+                          onClick={() => { setCropZoom(1); setCropPan({ x: 0, y: 0 }); setCropRotation(0); }}
+                        >
+                          ⏮️ Centra
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-modal-secondary"
+                          style={{ padding: "0.4rem 0.7rem", fontSize: "0.78rem" }}
+                          onClick={() => {
+                            const input = document.getElementById("foto-file-input");
+                            if (input) input.click();
+                          }}
+                        >
+                          📁 Altra Foto
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* CONTENUTO TAB 2: INSERIMENTO URL ESTERNO */}
+              {fotoTab === "url" && (
+                <div style={{ marginBottom: "1.2rem" }}>
+                  <input
+                    type="url"
+                    placeholder="https://i.ibb.co/.../foto.jpg"
+                    value={fotoUrlInput}
+                    onChange={(e) => setFotoUrlInput(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      borderRadius: "10px",
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid var(--border-gold)",
+                      color: "var(--text-primary)",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                      boxSizing: "border-box"
+                    }}
+                  />
+
+                  {/* Anteprima URL */}
+                  {fotoUrlInput.trim() && (
+                    <div style={{ marginTop: "1rem", textAlign: "center" }}>
+                      <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>Anteprima:</p>
+                      <img 
+                        src={fotoUrlInput.trim()} 
+                        alt="Anteprima URL" 
+                        style={{ width: "90px", height: "90px", borderRadius: "50%", objectFit: "cover", margin: "0 auto", border: "2px solid var(--gold)" }}
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                        onLoad={(e) => { e.currentTarget.style.display = "block"; }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {error && <p className="error-text" style={{ marginBottom: "1rem" }}>{error}</p>}
+
+              <div className="modal-actions" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <button 
+                  className="btn-modal-primary" 
+                  onClick={handleUpdateFoto} 
+                  disabled={fotoLoading || (fotoTab === "file" && !cropRawImage) || (fotoTab === "url" && !fotoUrlInput.trim())}
+                >
+                  {fotoLoading ? (
+                    <div className="spinner" style={{ margin: "0 auto" }} />
+                  ) : (
+                    "Salva Foto 💾"
+                  )}
+                </button>
+                <button 
+                  className="btn-modal-secondary" 
+                  onClick={() => { 
+                    setShowFotoModal(false); 
+                    setError(""); 
+                    setCropRawImage("");
+                    setCropZoom(1);
+                    setCropPan({ x: 0, y: 0 });
+                    setCropRotation(0);
+                    setFotoUrlInput(""); 
+                  }}
+                  disabled={fotoLoading}
+                >
+                  Annulla
+                </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-        </div>
       </div>
     </>
   );
